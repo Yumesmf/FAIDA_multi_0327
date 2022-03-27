@@ -1,52 +1,5 @@
 // multi-thread
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
-#include <iostream>
-#include <fstream>
-
-#include <sstream>
-#include <typeinfo>
-
-#include <vector>
-#include <utility>
-#include <functional>
-#include <algorithm>
-#include <bitset>
-#include <time.h>
-#include <pthread.h>
-
-using namespace std;
-
-#define LINE_BUF_SIZE 256
-#define NUM_THREADS 2
-
-char linebuf[LINE_BUF_SIZE];
-char *word;
-char *tmp;
-
-struct CSVDATA
-{
-    vector<vector<string> > data;
-    int record_count;
-    int col_count;
-    char *name;
-};
-CSVDATA csvData_1, csvData_1_hash;
-CSVDATA csvData_2, csvData_2_hash;
-vector<string> hash_hll_1;
-vector<string> hash_hll_2;
-vector<int> record;
-
-// prototype
-pair<CSVDATA, CSVDATA>
-get_record_col_count(const char *path, CSVDATA csvdata, CSVDATA csvdata_hash);
-pair<CSVDATA, CSVDATA> insert_structure(CSVDATA csvdata, CSVDATA csvdata_hash, int record_count, int col_count, FILE *fp, const char *path);
-void print_csv(CSVDATA csvdata);
-string StrToBitStr(string str);
-pair<vector<string>, vector<string> > HLL(CSVDATA csvData_1, CSVDATA csvData_1_hash, CSVDATA csvData_2, CSVDATA csvData_2_hash);
-//
+#include "faida.h"
 
 // read csv, get the size of columns and records
 pair<CSVDATA, CSVDATA> get_record_col_count(const char *path, CSVDATA csvdata, CSVDATA csvdata_hash)
@@ -76,6 +29,7 @@ pair<CSVDATA, CSVDATA> get_record_col_count(const char *path, CSVDATA csvdata, C
     csvdata_hash.record_count = record_count;
     csvdata_hash.col_count = col_count;
 
+    /*
     csvdata.data.resize(record_count);
     for (int i = 0; i < record_count; i++)
     {
@@ -87,6 +41,7 @@ pair<CSVDATA, CSVDATA> get_record_col_count(const char *path, CSVDATA csvdata, C
     {
         csvdata_hash.data[i].resize(col_count);
     }
+    */
     fclose(fp);
 
     csvdata = insert_structure(csvdata, csvdata_hash, csvdata.record_count, csvdata.col_count, fp, path).first;
@@ -97,44 +52,38 @@ pair<CSVDATA, CSVDATA> get_record_col_count(const char *path, CSVDATA csvdata, C
 // insert csv data into struct
 pair<CSVDATA, CSVDATA> insert_structure(CSVDATA csvdata, CSVDATA csvdata_hash, int record_count, int col_count, FILE *fp, const char *path)
 {
-
     string word_hash;
-
-    record_count = 0;
     fp = fopen(path, "r");
-    while (fgets(linebuf, LINE_BUF_SIZE, fp))
-    {
-        col_count = 0;
+    auto rec_p = cvsdata.data.head();
+    auto h_rec_p = cvsdata_hash.data.head();
+    while (fgets(linebuf, LINE_BUF_SIZE, fp)) {
+	word = strtok_r(linebuf, ",", &tmp);
+	if (word == NULL) {
+	    fclose(fp);
+	    return make_pair(csvdata, csvdata_hash);
+	}
+	auto col_p = recp.head();
+	auto h_col_p = recp.head();
+	hash<string> hash_obj;
+	while (true) {
+	    // normal
+	    colp.push_back(word);
 
-        word = strtok_r(linebuf, ",", &tmp);
-        // cout << word << endl;
-        hash<string> hash_obj;
+	    // hash
+	    stringstream hash_data; hash_data << hash_obj(word);
+	    word_hash = hash_data.str();
+	    h_col_p.push_back(word_hash);	    
 
-        while (word != NULL)
-        {
-            csvdata.data[record_count][col_count] = word;
-            stringstream hash_data;
-            hash_data << hash_obj(word);
-            word_hash = hash_data.str();
-            csvdata_hash.data[record_count][col_count] = word_hash;
-            col_count++;
-            word = strtok_r(NULL, ",", &tmp);
-        }
-
-        record_count++;
+	    word = strtok_r(NULL, ",", &tmp);
+	}
     }
-    fclose(fp);
-    return make_pair(csvdata, csvdata_hash);
 }
 
 void print_csv(CSVDATA csvdata)
 {
-
-    for (int i = 0; i < csvdata.record_count; i++)
-    {
-        for (int c = 0; c < csvdata.col_count; c++)
-        {
-            cout << csvdata.data[i][c] << endl;
+    for (auto rec = cvsdata.data.begin(); rec != cvsdata.data.end(); rec++) {
+	for (auto col = rec->begin(); col != rec->end(); col++) {
+            cout << *col << endl;
         }
     }
 }
@@ -144,28 +93,25 @@ pair<vector<string>, vector<string> > HLL(CSVDATA csvData_1, CSVDATA csvData_1_h
 {
     // HLL for csv1 and csv2, hashvalue->binary->first four bits
     int i = 0;
-    while (i < csvData_1_hash.record_count)
-    {
+    //while (i < csvData_1_hash.record_count)
+    //while (i < csvData_1_hash.size()) {
+    for (auto h_rec_p = csvData_1_hash.data.begin(); h_rec_p != csvData_1_hash.data.end() h_rec_p++) {
         string hll = "";
-        for (int c = 0; c < csvData_1_hash.col_count; c++)
-        {
-            hll = hll + StrToBitStr(csvData_1_hash.data[i][c]);
+	for (auto h_col_p = h_rec_p->begin(); h_col_p != h_rec_p->end() h_col_p++) {
+            hll = hll + StrToBitStr(*h_col_p);
         }
         hash_hll_1.push_back(hll);
-        i++;
     }
 
     int m = 0;
-    while (m < csvData_2_hash.record_count)
-    {
+    for (auto h_rec_p = csvData_2_hash.data.begin(); h_rec_p != csvData_2_hash.data.end() h_rec_p++) {
         string hll = "";
-        for (int c = 0; c < csvData_2_hash.col_count; c++)
-        {
-            hll = hll + StrToBitStr(csvData_2_hash.data[m][c]);
+	for (auto h_col_p = h_rec_p->begin(); h_col_p != h_rec_p->end() h_col_p++) {
+            hll = hll + StrToBitStr(*h_col_p);
         }
         hash_hll_2.push_back(hll);
-        m++;
     }
+
     return make_pair(hash_hll_1, hash_hll_2);
 }
 
@@ -260,27 +206,18 @@ int main(void)
     clock_t begin = clock();
     pthread_t threads[NUM_THREADS];
 
-    for (int m = 0; m < NUM_THREADS; m++)
-    {
-
+    for (int m = 0; m < NUM_THREADS; m++){
         int rc;
         rc = pthread_create(&threads[m], NULL, IND_check, (void *)m);
-        // if (rc)
-        // {
-        //     cout << "Error:unable to create thread," << rc << endl;
-        //     exit(-1);
-        // }
+        if (rc) {perror(""); exit(1);}
     }
-    for (int m = 0; m < NUM_THREADS; m++)
-    {
+    for (int m = 0; m < NUM_THREADS; m++) {
         pthread_join(threads[m], NULL);
     }
     ofstream outFile;
     outFile.open("data555.csv", ios::out);
-    for (int i = 0; i < record.size(); i++)
-    {
-        for (int j = 0; j < csvData_1.col_count; j++)
-        {
+    for (int i = 0; i < record.size(); i++) {
+        for (int j = 0; j < csvData_1.col_count; j++) {
             outFile << csvData_1.data[record[i]][j] << endl;
         }
     }
