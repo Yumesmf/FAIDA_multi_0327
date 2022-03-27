@@ -241,8 +241,8 @@ void *IND_check(void *arg)
 int main(void)
 {
 
-    string filepath1_1 = "csv/customer.csv";
-    string filepath2_1 = "csv/supplier.csv";
+    string filepath1_1 = "customer.csv";
+    string filepath2_1 = "supplier.csv";
     const char *filepath1 = filepath1_1.c_str();
     const char *filepath2 = filepath2_1.c_str();
     csvData_1 = get_record_col_count(filepath1, csvData_1, csvData_1_hash).first;
