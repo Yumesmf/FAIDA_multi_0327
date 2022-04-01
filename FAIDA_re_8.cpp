@@ -1,5 +1,54 @@
-// multi-thread
-#include "faida.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <iostream>
+#include <fstream>
+#include <cassert>
+
+#include <sstream>
+#include <typeinfo>
+
+#include <vector>
+#include <list>
+#include <utility>
+#include <functional>
+#include <algorithm>
+#include <bitset>
+#include <time.h>
+
+using namespace std;
+
+#define LINE_BUF_SIZE 512
+
+char *word;
+char *tmp;
+
+struct Record
+{
+    vector<string> cell;
+};
+
+struct CSVDATA
+{
+    list<Record> data;
+    char *name;
+};
+
+CSVDATA csvData_1, csvData_1_hash;
+CSVDATA csvData_2, csvData_2_hash;
+list<string> hash_hll_1;
+list<string> hash_hll_2;
+vector<int> record;
+
+// // prototype
+// pair<CSVDATA, CSVDATA>
+// get_record_col_count(const char *path, CSVDATA csvdata, CSVDATA csvdata_hash);
+// pair<CSVDATA, CSVDATA> insert_structure(CSVDATA csvdata, CSVDATA csvdata_hash, int record_count, int col_count, FILE *fp, const char *path);
+// void print_csv(CSVDATA csvdata);
+string StrToBitStr(string str);
+// pair<list<string>, list<string> > HLL(CSVDATA csvData_1_hash, CSVDATA csvData_2_hash);
+// //
 
 void print_csv(CSVDATA csvdata)
 {
@@ -110,20 +159,16 @@ string StrToBitStr(string str)
 }
 
 // Nested Loops Join
-void IND_check(int start)
+void IND_check()
 {
     // compare HLL binary string by tuple, check each value (= inverted index)
-    start *= 40000;
+    // start *= 40000;
     // cout << start << endl;
     // for (int i = start; i < start + 40000; i++) {
-    int line = start;
+    int line = 0;
     auto rec1 = csvData_1_hash.data.begin();
-    advance(rec1, start);
     auto h1 = hash_hll_1.begin();
-    advance(h1, start);
-    auto h1_end = h1;
-    advance(h1_end, 40000);
-    for (; h1 != h1_end;
+    for (; h1 != hash_hll_1.end();
          h1++, rec1++, line++)
     {
         if (line % 100 == 0)
@@ -157,8 +202,8 @@ void IND_check(int start)
 int main(void)
 {
     clock_t begin = clock();
-    string filepath1_1 = "customer.csv";
-    string filepath2_1 = "supplier.csv";
+    string filepath1_1 = "csv/customer.csv";
+    string filepath2_1 = "csv/supplier.csv";
     const char *filepath1 = filepath1_1.c_str();
     const char *filepath2 = filepath2_1.c_str();
     csvData_1 = get_record(filepath1, csvData_1, csvData_1_hash).first;
@@ -193,18 +238,9 @@ int main(void)
 
     // IND_check(hash_hll_1, hash_hll_2, csvData_1_hash, csvData_2_hash, csvData_1);
     // thread_hll();
+    IND_check();
 
     // pthread_t threads[NUM_THREADS];
-
-    std::vector<std::thread> threads;
-    for (size_t m = 0; m < NUM_THREADS; m++)
-    {
-        threads.emplace_back(std::thread(IND_check, m));
-    }
-    for (auto &thread : threads)
-    {
-        thread.join();
-    }
 
     clock_t end = clock();
     cout << "Running time: " << (double)(end - begin) / CLOCKS_PER_SEC * 1000 << "ms" << endl;
